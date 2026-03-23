@@ -126,7 +126,7 @@ function ProviderPanel({ provider, config, onSave, onDelete, isDeleting, isSavin
   };
 
   const handleRemoveKey = () => {
-    onSave({ apiKey: null });
+    onSave({ apiKey: null, enabled: false });
     setApiKey("");
   };
 
