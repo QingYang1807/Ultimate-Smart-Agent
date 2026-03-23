@@ -3,6 +3,7 @@ import { eq, desc } from "drizzle-orm";
 import { ZodError } from "zod";
 import { db, conversations, messages, providerConfigs } from "@workspace/db";
 import { openai, createOpenAIClient } from "@workspace/integrations-openai-ai-server";
+import { validateBaseUrl } from "../../lib/validate-base-url.js";
 import {
   CreateOpenaiConversationBody,
   SendOpenaiMessageBody,
@@ -198,6 +199,11 @@ router.post("/conversations/:id/messages", async (req, res) => {
         .where(eq(providerConfigs.providerId, body.providerId));
 
       if (providerConfig && providerConfig.apiKey && providerConfig.enabled) {
+        const baseUrlCheck = providerConfig.baseUrl ? validateBaseUrl(providerConfig.baseUrl) : { valid: true };
+        if (!baseUrlCheck.valid) {
+          res.status(400).json({ error: "Stored base URL is invalid. Please reconfigure the provider." });
+          return;
+        }
         activeClient = createOpenAIClient(providerConfig.apiKey, providerConfig.baseUrl);
         activeModel = body.model ?? providerConfig.selectedModel ?? "gpt-4o";
       }

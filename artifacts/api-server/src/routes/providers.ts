@@ -3,6 +3,7 @@ import { eq } from "drizzle-orm";
 import { ZodError } from "zod";
 import { db, providerConfigs } from "@workspace/db";
 import { upsertProviderConfigSchema } from "@workspace/db";
+import { validateBaseUrl } from "../lib/validate-base-url.js";
 
 const router: IRouter = Router();
 
@@ -27,6 +28,14 @@ router.put("/providers/:providerId", async (req, res) => {
   try {
     const { providerId } = req.params;
     const body = upsertProviderConfigSchema.parse(req.body);
+
+    if (body.baseUrl) {
+      const check = validateBaseUrl(body.baseUrl);
+      if (!check.valid) {
+        res.status(400).json({ error: `Invalid base URL: ${check.reason}` });
+        return;
+      }
+    }
 
     const now = new Date();
     const [existing] = await db
