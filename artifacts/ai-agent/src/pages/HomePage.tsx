@@ -12,7 +12,7 @@ const SUGGESTIONS = [
 ];
 
 export function HomePage() {
-  const { sendMessage, isStreaming, stopStreaming } = useChat();
+  const { sendMessage, isStreaming, stopStreaming, createConversationWithImage } = useChat();
   const [imageGenOpen, setImageGenOpen] = useState(false);
 
   const handleSend = (text: string) => {
@@ -74,8 +74,8 @@ export function HomePage() {
       <ImageGenerator
         isOpen={imageGenOpen}
         setIsOpen={setImageGenOpen}
-        onGenerated={() => {
-          sendMessage("Generate an image based on the prompt I provided.", null);
+        onGenerated={(url, prompt) => {
+          createConversationWithImage(url, prompt);
         }}
       />
     </div>

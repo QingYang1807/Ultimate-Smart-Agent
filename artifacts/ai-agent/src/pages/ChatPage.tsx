@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useParams } from "wouter";
-import { useGetOpenaiConversation } from "@workspace/api-client-react";
+import { useGetOpenaiConversation, getGetOpenaiConversationQueryKey } from "@workspace/api-client-react";
 import { ChatInput } from "@/components/ChatInput";
 import { MessageList } from "@/components/MessageList";
 import { useChat } from "@/context/ChatContext";
@@ -13,8 +13,8 @@ export function ChatPage() {
 
   const { data: conversation, isLoading } = useGetOpenaiConversation(conversationId, {
     query: {
+      queryKey: getGetOpenaiConversationQueryKey(conversationId),
       enabled: !isNaN(conversationId),
-      queryKey: ["openai", "conversations", conversationId],
     },
   });
 

@@ -22,6 +22,7 @@ interface ChatContextValue {
   sendMessage: (content: string, existingConversationId: number | null) => Promise<void>;
   stopStreaming: () => void;
   addLocalMedia: (conversationId: number, media: Omit<LocalMedia, "id" | "createdAt">) => void;
+  createConversationWithImage: (url: string, prompt: string) => Promise<void>;
 }
 
 const ChatContext = createContext<ChatContextValue | null>(null);
@@ -125,29 +126,35 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
 
         const reader = res.body.getReader();
         const decoder = new TextDecoder();
-        let done = false;
+        let readerDone = false;
+        let streamDone = false;
+        let buffer = "";
 
-        while (!done) {
-          const { value, done: readerDone } = await reader.read();
-          done = readerDone;
+        while (!readerDone && !streamDone) {
+          const { value, done } = await reader.read();
+          readerDone = done;
           if (value) {
-            const chunk = decoder.decode(value, { stream: true });
-            const lines = chunk.split("\n");
-            for (const line of lines) {
-              if (line.startsWith("data: ")) {
-                const dataStr = line.slice(6).trim();
-                if (!dataStr || dataStr === "[DONE]") continue;
-                try {
-                  const data = JSON.parse(dataStr) as { content?: string; done?: boolean };
-                  if (data.done) {
-                    done = true;
-                  } else if (data.content) {
-                    setStreamingContent((prev) => prev + data.content);
-                  }
-                } catch {
-                  // Ignore malformed SSE chunks
-                }
+            buffer += decoder.decode(value, { stream: true });
+          }
+
+          let newlineIdx: number;
+          while ((newlineIdx = buffer.indexOf("\n")) !== -1) {
+            const line = buffer.slice(0, newlineIdx).trimEnd();
+            buffer = buffer.slice(newlineIdx + 1);
+
+            if (!line.startsWith("data: ")) continue;
+            const dataStr = line.slice(6).trim();
+            if (!dataStr || dataStr === "[DONE]") continue;
+            try {
+              const data = JSON.parse(dataStr) as { content?: string; done?: boolean };
+              if (data.done) {
+                streamDone = true;
+                break;
+              } else if (data.content) {
+                setStreamingContent((prev) => prev + data.content);
               }
+            } catch {
+              // Ignore malformed SSE chunks
             }
           }
         }
@@ -167,9 +174,21 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
     [createConversation, queryClient, setLocation],
   );
 
+  const createConversationWithImage = useCallback(
+    async (url: string, prompt: string) => {
+      const title = prompt.length > 40 ? prompt.substring(0, 40) + "..." : prompt;
+      const newConv = await createConversation({ data: { title } });
+      const convId = newConv.id;
+      queryClient.invalidateQueries({ queryKey: getListOpenaiConversationsQueryKey() });
+      addLocalMedia(convId, { type: "image", url, prompt });
+      setLocation(`/c/${convId}`);
+    },
+    [createConversation, queryClient, addLocalMedia, setLocation],
+  );
+
   return (
     <ChatContext.Provider
-      value={{ isStreaming, streamingContent, localMedia, sendMessage, stopStreaming, addLocalMedia }}
+      value={{ isStreaming, streamingContent, localMedia, sendMessage, stopStreaming, addLocalMedia, createConversationWithImage }}
     >
       {children}
     </ChatContext.Provider>
