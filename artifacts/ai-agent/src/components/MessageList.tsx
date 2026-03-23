@@ -4,7 +4,7 @@ import { Bot, User, Image as ImageIcon } from "lucide-react";
 import { MarkdownRenderer } from "./MarkdownRenderer";
 import { cn } from "@/lib/utils";
 import type { OpenaiMessage } from "@workspace/api-client-react";
-import type { LocalMedia } from "@/hooks/use-chat";
+import type { LocalMedia } from "@/context/ChatContext";
 
 interface MessageListProps {
   messages: OpenaiMessage[];
