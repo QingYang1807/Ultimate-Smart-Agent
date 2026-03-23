@@ -18,7 +18,7 @@ export function ChatPage() {
     },
   });
 
-  const { sendMessage, isStreaming, streamingContent, stopStreaming, localMedia, addLocalMedia } =
+  const { sendMessage, isStreaming, streamingContent, stopStreaming, localMedia, addAndPersistImage } =
     useChat();
 
   const [imageGenOpen, setImageGenOpen] = useState(false);
@@ -28,7 +28,7 @@ export function ChatPage() {
   };
 
   const handleImageGenerated = (url: string, prompt: string) => {
-    addLocalMedia(conversationId, { type: "image", url, prompt });
+    addAndPersistImage(conversationId, url, prompt);
   };
 
   if (isLoading) {

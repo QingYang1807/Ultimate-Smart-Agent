@@ -22,6 +22,7 @@ interface ChatContextValue {
   sendMessage: (content: string, existingConversationId: number | null) => Promise<void>;
   stopStreaming: () => void;
   addLocalMedia: (conversationId: number, media: Omit<LocalMedia, "id" | "createdAt">) => void;
+  addAndPersistImage: (conversationId: number, url: string, prompt: string) => Promise<void>;
   createConversationWithImage: (url: string, prompt: string) => Promise<void>;
 }
 
@@ -174,12 +175,33 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
     [createConversation, queryClient, setLocation],
   );
 
+  const addAndPersistImage = useCallback(
+    async (conversationId: number, url: string, prompt: string) => {
+      addLocalMedia(conversationId, { type: "image", url, prompt });
+      await fetch(`/api/openai/conversations/${conversationId}/images`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ imageUrl: url, prompt }),
+      }).catch(() => {});
+      queryClient.invalidateQueries({ queryKey: getGetOpenaiConversationQueryKey(conversationId) });
+    },
+    [addLocalMedia, queryClient],
+  );
+
   const createConversationWithImage = useCallback(
     async (url: string, prompt: string) => {
       const title = prompt.length > 40 ? prompt.substring(0, 40) + "..." : prompt;
       const newConv = await createConversation({ data: { title } });
       const convId = newConv.id;
       queryClient.invalidateQueries({ queryKey: getListOpenaiConversationsQueryKey() });
+
+      await fetch(`/api/openai/conversations/${convId}/images`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ imageUrl: url, prompt }),
+      }).catch(() => {});
+
+      queryClient.invalidateQueries({ queryKey: getGetOpenaiConversationQueryKey(convId) });
       addLocalMedia(convId, { type: "image", url, prompt });
       setLocation(`/c/${convId}`);
     },
@@ -188,7 +210,7 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
 
   return (
     <ChatContext.Provider
-      value={{ isStreaming, streamingContent, localMedia, sendMessage, stopStreaming, addLocalMedia, createConversationWithImage }}
+      value={{ isStreaming, streamingContent, localMedia, sendMessage, stopStreaming, addLocalMedia, addAndPersistImage, createConversationWithImage }}
     >
       {children}
     </ChatContext.Provider>
