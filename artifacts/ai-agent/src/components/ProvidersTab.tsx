@@ -1,9 +1,10 @@
 import { useState, useMemo, useEffect } from "react";
-import { Search, Eye, EyeOff, CheckCircle2, AlertCircle, Loader2 } from "lucide-react";
+import { Search, Eye, EyeOff, CheckCircle2, AlertCircle, Loader2, Trash2 } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import {
   useListProviderConfigs,
   useUpsertProviderConfig,
+  useDeleteProviderConfig,
   getListProviderConfigsQueryKey,
 } from "@workspace/api-client-react";
 import type { ProviderConfig } from "@workspace/api-client-react";
@@ -89,10 +90,12 @@ interface ProviderPanelProps {
   provider: ProviderMeta;
   config?: ProviderConfig;
   onSave: (data: { apiKey?: string | null; baseUrl?: string | null; enabled?: boolean; selectedModel?: string | null }) => void;
+  onDelete?: () => void;
+  isDeleting?: boolean;
   isSaving: boolean;
 }
 
-function ProviderPanel({ provider, config, onSave, isSaving }: ProviderPanelProps) {
+function ProviderPanel({ provider, config, onSave, onDelete, isDeleting, isSaving }: ProviderPanelProps) {
   const [apiKey, setApiKey] = useState("");
   const [baseUrl, setBaseUrl] = useState(config?.baseUrl ?? provider.defaultBaseUrl);
   const [showKey, setShowKey] = useState(false);
@@ -245,6 +248,18 @@ function ProviderPanel({ provider, config, onSave, isSaving }: ProviderPanelProp
         )}
       </button>
 
+      {/* Remove configuration */}
+      {onDelete && (
+        <button
+          onClick={onDelete}
+          disabled={isDeleting}
+          className="w-full py-2 rounded-xl text-xs font-medium text-red-400/70 hover:text-red-400 hover:bg-red-500/10 border border-transparent hover:border-red-500/20 transition-all flex items-center justify-center gap-1.5 disabled:opacity-40"
+        >
+          {isDeleting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
+          Remove configuration
+        </button>
+      )}
+
       {/* Models */}
       {provider.popularModels.length > 0 && (
         <div className="space-y-2 pt-2 border-t border-white/5">
@@ -287,6 +302,7 @@ export function ProvidersTab() {
   const [selectedId, setSelectedId] = useState<string>("replit");
   const { data: configs = [], isLoading } = useListProviderConfigs();
   const { mutate: upsert, isPending: isSaving } = useUpsertProviderConfig();
+  const { mutate: deleteConfig, isPending: isDeleting } = useDeleteProviderConfig();
   const queryClient = useQueryClient();
 
   const configMap = useMemo(() => {
@@ -337,6 +353,21 @@ export function ProvidersTab() {
             if (currentActive.providerId === providerId) {
               saveActiveModel({ providerId: "replit", model: "gpt-5.2" });
             }
+          }
+        },
+      },
+    );
+  };
+
+  const handleDelete = () => {
+    deleteConfig(
+      { providerId: selectedId },
+      {
+        onSuccess: () => {
+          queryClient.invalidateQueries({ queryKey: getListProviderConfigsQueryKey() });
+          const currentActive = loadActiveModel();
+          if (currentActive.providerId === selectedId) {
+            saveActiveModel({ providerId: "replit", model: "gpt-5.2" });
           }
         },
       },
@@ -401,6 +432,8 @@ export function ProvidersTab() {
               provider={selectedProvider}
               config={selectedConfig}
               onSave={handleSave}
+              onDelete={selectedConfig && selectedProvider.id !== "replit" ? handleDelete : undefined}
+              isDeleting={isDeleting}
               isSaving={isSaving}
             />
           </>

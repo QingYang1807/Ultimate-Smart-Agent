@@ -1,13 +1,14 @@
 import { useState, useEffect } from "react";
 import { Link, useLocation } from "wouter";
 import { format } from "date-fns";
-import { MessageSquare, Plus, Trash2, Zap, Settings, Command, ChevronDown } from "lucide-react";
+import { MessageSquare, Plus, Trash2, Zap, Settings, Command } from "lucide-react";
 import { useListOpenaiConversations, useDeleteOpenaiConversation, getListOpenaiConversationsQueryKey } from "@workspace/api-client-react";
 import { cn } from "@/lib/utils";
 import { useQueryClient } from "@tanstack/react-query";
 import { SettingsDialog } from "@/components/SettingsDialog";
-import { loadActiveModel, getProviderById } from "@/lib/providers-registry";
+import { loadActiveModel } from "@/lib/providers-registry";
 import type { ActiveModelSelection } from "@/lib/providers-registry";
+import { ModelPicker, ACTIVE_MODEL_CHANGE_EVENT } from "@/components/ModelPicker";
 
 export function Sidebar({ className }: { className?: string }) {
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -15,9 +16,17 @@ export function Sidebar({ className }: { className?: string }) {
   const [location, setLocation] = useLocation();
 
   useEffect(() => {
+    const onModelChange = (e: Event) => {
+      const detail = (e as CustomEvent<ActiveModelSelection>).detail;
+      if (detail) setActiveModel(detail);
+    };
     const onStorage = () => setActiveModel(loadActiveModel());
+    window.addEventListener(ACTIVE_MODEL_CHANGE_EVENT, onModelChange);
     window.addEventListener("storage", onStorage);
-    return () => window.removeEventListener("storage", onStorage);
+    return () => {
+      window.removeEventListener(ACTIVE_MODEL_CHANGE_EVENT, onModelChange);
+      window.removeEventListener("storage", onStorage);
+    };
   }, []);
   const { data: conversations, isLoading } = useListOpenaiConversations();
   const { mutate: deleteConversation } = useDeleteOpenaiConversation();
@@ -115,21 +124,8 @@ export function Sidebar({ className }: { className?: string }) {
       </div>
 
       <div className="p-4 border-t border-white/5 mt-auto space-y-1">
-        {/* Model picker */}
-        <button
-          onClick={() => { setSettingsOpen(true); }}
-          title="Change active model"
-          className="flex items-center gap-2 w-full px-3 py-2 rounded-xl text-xs text-white/50 hover:text-white hover:bg-white/5 transition-colors group"
-        >
-          <div
-            className="w-4 h-4 rounded-sm shrink-0 flex items-center justify-center text-white text-[8px] font-bold"
-            style={{ backgroundColor: (() => { const p = getProviderById(activeModel.providerId); return p?.color === "#000000" || p?.color === "#1A1A1A" ? "#333" : (p?.color ?? "#6366f1"); })() }}
-          >
-            {(getProviderById(activeModel.providerId)?.name ?? "R").slice(0, 1)}
-          </div>
-          <span className="truncate flex-1 text-left font-mono">{activeModel.model}</span>
-          <ChevronDown className="w-3 h-3 opacity-40 group-hover:opacity-70 shrink-0" />
-        </button>
+        {/* Inline model picker popover */}
+        <ModelPicker activeModel={activeModel} onModelChange={setActiveModel} />
         <button
           onClick={() => setSettingsOpen(true)}
           className="flex items-center gap-3 w-full px-3 py-2 rounded-xl text-sm text-white/60 hover:text-white hover:bg-white/5 transition-colors"
