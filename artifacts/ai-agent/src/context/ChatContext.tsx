@@ -181,7 +181,7 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
       await fetch(`/api/openai/conversations/${conversationId}/images`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ imageUrl: url, prompt }),
+        body: JSON.stringify({ prompt }),
       }).catch(() => {});
       queryClient.invalidateQueries({ queryKey: getGetOpenaiConversationQueryKey(conversationId) });
     },
@@ -198,7 +198,7 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
       await fetch(`/api/openai/conversations/${convId}/images`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ imageUrl: url, prompt }),
+        body: JSON.stringify({ prompt }),
       }).catch(() => {});
 
       queryClient.invalidateQueries({ queryKey: getGetOpenaiConversationQueryKey(convId) });

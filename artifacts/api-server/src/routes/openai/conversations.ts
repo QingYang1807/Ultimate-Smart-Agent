@@ -235,9 +235,9 @@ router.post("/conversations/:id/images", async (req, res) => {
       return;
     }
 
-    const { imageUrl, prompt } = req.body as { imageUrl?: unknown; prompt?: unknown };
-    if (typeof imageUrl !== "string" || !imageUrl || typeof prompt !== "string" || !prompt) {
-      res.status(400).json({ error: "imageUrl and prompt are required strings" });
+    const { prompt } = req.body as { prompt?: unknown };
+    if (typeof prompt !== "string" || !prompt) {
+      res.status(400).json({ error: "prompt is required" });
       return;
     }
 
@@ -255,7 +255,7 @@ router.post("/conversations/:id/images", async (req, res) => {
       .values({
         conversationId: id,
         role: "image",
-        content: JSON.stringify({ imageUrl, prompt }),
+        content: JSON.stringify({ prompt }),
       })
       .returning();
 
