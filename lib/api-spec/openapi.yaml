@@ -214,6 +214,9 @@ components:
       properties:
         content:
           type: string
+        systemPrompt:
+          type: string
+          description: Optional custom system prompt to override the default assistant instructions
       required:
         - content
     OpenaiConversationWithMessages:

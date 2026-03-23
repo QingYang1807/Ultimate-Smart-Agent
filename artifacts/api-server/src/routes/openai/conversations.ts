@@ -160,11 +160,13 @@ router.post("/conversations/:id/messages", async (req, res) => {
       content: body.content,
     });
 
+    const defaultSystemPrompt =
+      "You are an extremely capable AI Agent. You can help with any task: coding, writing, analysis, math, creative work, research, problem-solving, image generation (tell the user you can generate images when relevant), and more. Be concise, clear, and helpful. Use markdown formatting when it improves readability.";
+
     const chatMessages: { role: "system" | "user" | "assistant"; content: string }[] = [
       {
         role: "system",
-        content:
-          "You are an extremely capable AI Agent. You can help with any task: coding, writing, analysis, math, creative work, research, problem-solving, image generation (tell the user you can generate images when relevant), and more. Be concise, clear, and helpful. Use markdown formatting when it improves readability.",
+        content: body.systemPrompt ?? defaultSystemPrompt,
       },
       ...history
         .filter((m) => m.role === "user" || m.role === "assistant")

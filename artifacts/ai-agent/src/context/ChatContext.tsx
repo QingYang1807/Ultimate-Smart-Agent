@@ -6,6 +6,7 @@ import {
   getGetOpenaiConversationQueryKey,
   getListOpenaiConversationsQueryKey,
 } from "@workspace/api-client-react";
+import { loadSettings, buildSystemPrompt } from "@/components/SettingsDialog";
 
 export type LocalMedia = {
   id: string;
@@ -115,10 +116,13 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
           },
         );
 
+        const settings = loadSettings();
+        const systemPrompt = buildSystemPrompt(settings);
+
         const res = await fetch(`/api/openai/conversations/${targetId}/messages`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ content }),
+          body: JSON.stringify({ content, systemPrompt }),
           signal: abortControllerRef.current.signal,
         });
 

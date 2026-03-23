@@ -1,11 +1,14 @@
+import { useState } from "react";
 import { Link, useLocation } from "wouter";
 import { format } from "date-fns";
 import { MessageSquare, Plus, Trash2, Zap, Settings, Command } from "lucide-react";
 import { useListOpenaiConversations, useDeleteOpenaiConversation, getListOpenaiConversationsQueryKey } from "@workspace/api-client-react";
 import { cn } from "@/lib/utils";
 import { useQueryClient } from "@tanstack/react-query";
+import { SettingsDialog } from "@/components/SettingsDialog";
 
 export function Sidebar({ className }: { className?: string }) {
+  const [settingsOpen, setSettingsOpen] = useState(false);
   const [location, setLocation] = useLocation();
   const { data: conversations, isLoading } = useListOpenaiConversations();
   const { mutate: deleteConversation } = useDeleteOpenaiConversation();
@@ -103,11 +106,16 @@ export function Sidebar({ className }: { className?: string }) {
       </div>
 
       <div className="p-4 border-t border-white/5 mt-auto">
-        <button className="flex items-center gap-3 w-full px-3 py-2 rounded-xl text-sm text-white/60 hover:text-white hover:bg-white/5 transition-colors">
+        <button
+          onClick={() => setSettingsOpen(true)}
+          className="flex items-center gap-3 w-full px-3 py-2 rounded-xl text-sm text-white/60 hover:text-white hover:bg-white/5 transition-colors"
+        >
           <Settings className="w-4 h-4" />
           Settings
         </button>
       </div>
+
+      <SettingsDialog open={settingsOpen} onOpenChange={setSettingsOpen} />
     </div>
   );
 }
