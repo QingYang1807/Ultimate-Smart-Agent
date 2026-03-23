@@ -1,5 +1,5 @@
 import { Router, type IRouter } from "express";
-import { eq } from "drizzle-orm";
+import { eq, desc } from "drizzle-orm";
 import { ZodError } from "zod";
 import { db, conversations, messages } from "@workspace/db";
 import { openai } from "@workspace/integrations-openai-ai-server";
@@ -15,7 +15,7 @@ router.get("/conversations", async (req, res) => {
     const rows = await db
       .select()
       .from(conversations)
-      .orderBy(conversations.createdAt);
+      .orderBy(desc(conversations.createdAt));
     res.json(rows.map((c) => ({ ...c, createdAt: c.createdAt.toISOString() })));
   } catch (err) {
     req.log.error({ err }, "Failed to list conversations");
