@@ -1,0 +1,21 @@
+packages:
+  "react-markdown": "Render markdown in chat messages"
+  "remark-gfm": "Support tables and advanced markdown formatting"
+  "react-syntax-highlighter": "Code block syntax highlighting in markdown"
+  "framer-motion": "Smooth animations for chat bubbles, modals, and sidebar"
+  "react-textarea-autosize": "Auto-growing chat input field"
+  "clsx": "Utility for constructing className strings"
+  "tailwind-merge": "Utility for merging tailwind classes safely"
+  "date-fns": "Date formatting for conversation history"
+
+images:
+  - path: "artifacts/ai-agent/public/images/ai-avatar.png"
+    description: "A minimal, futuristic, glowing abstract geometric icon representing a highly advanced artificial intelligence, deep space dark background, glowing violet, magenta and cyan neon accents, highly polished 3d render"
+    aspect_ratio: "1:1"
+  - path: "artifacts/ai-agent/public/images/empty-bg.png"
+    description: "A subtle, dark, moody abstract gradient mesh background with very soft noise texture, mostly dark charcoal and obsidian with faint, ethereal hints of deep indigo and violet light leaks"
+    aspect_ratio: "16:9"
+
+notes:
+  - SSE streaming relies on raw fetch API and ReadableStream as Orval cannot generate hooks for text/event-stream.
+  - Image generation returns base64 which is injected into local state as the API doesn't natively persist image attachments in the chat history.
