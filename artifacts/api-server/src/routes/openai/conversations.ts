@@ -200,11 +200,9 @@ router.post("/conversations/:id/messages", async (req, res) => {
       if (providerConfig && providerConfig.apiKey && providerConfig.enabled) {
         activeClient = createOpenAIClient(providerConfig.apiKey, providerConfig.baseUrl);
         activeModel = body.model ?? providerConfig.selectedModel ?? "gpt-4o";
-      } else {
-        activeModel = body.model ?? "gpt-5.2";
       }
-    } else if (body.model) {
-      activeModel = body.model;
+      // If provider config is missing, disabled, or lacks a key, fall back to
+      // Replit integration with the canonical default model — ignore caller-supplied model.
     }
 
     const stream = await activeClient.chat.completions.create({

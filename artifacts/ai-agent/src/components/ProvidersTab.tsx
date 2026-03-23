@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { Search, Eye, EyeOff, CheckCircle2, AlertCircle, Loader2 } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import {
@@ -98,6 +98,13 @@ function ProviderPanel({ provider, config, onSave, isSaving }: ProviderPanelProp
   const [showKey, setShowKey] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
   const activeModel = loadActiveModel();
+
+  useEffect(() => {
+    setApiKey("");
+    setShowKey(false);
+    setSaveSuccess(false);
+    setBaseUrl(config?.baseUrl ?? provider.defaultBaseUrl);
+  }, [provider.id, config?.baseUrl, provider.defaultBaseUrl]);
 
   const hasExistingKey = !!config?.apiKey;
   const keyPlaceholder = hasExistingKey ? "••••••••••••••••" : "Enter API key...";
