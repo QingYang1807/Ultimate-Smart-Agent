@@ -25,7 +25,9 @@ import type {
   OpenaiConversationWithMessages,
   OpenaiError,
   OpenaiMessage,
+  ProviderConfig,
   SendOpenaiMessageBody,
+  UpsertProviderConfigBody,
 } from "./api.schemas";
 
 import { customFetch } from "../custom-fetch";
@@ -709,4 +711,232 @@ export const useGenerateOpenaiImage = <
   TContext
 > => {
   return useMutation(getGenerateOpenaiImageMutationOptions(options));
+};
+
+/**
+ * @summary List all configured providers
+ */
+export const getListProviderConfigsUrl = () => {
+  return `/api/providers`;
+};
+
+export const listProviderConfigs = async (
+  options?: RequestInit,
+): Promise<ProviderConfig[]> => {
+  return customFetch<ProviderConfig[]>(getListProviderConfigsUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getListProviderConfigsQueryKey = () => {
+  return [`/api/providers`] as const;
+};
+
+export const getListProviderConfigsQueryOptions = <
+  TData = Awaited<ReturnType<typeof listProviderConfigs>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof listProviderConfigs>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+  const queryKey = queryOptions?.queryKey ?? getListProviderConfigsQueryKey();
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof listProviderConfigs>>> = ({
+    signal,
+  }) => listProviderConfigs({ signal, ...requestOptions });
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof listProviderConfigs>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type ListProviderConfigsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listProviderConfigs>>
+>;
+export type ListProviderConfigsQueryError = ErrorType<unknown>;
+
+export function useListProviderConfigs<
+  TData = Awaited<ReturnType<typeof listProviderConfigs>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof listProviderConfigs>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getListProviderConfigsQueryOptions(options);
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Create or update provider configuration
+ */
+export const getUpsertProviderConfigUrl = (providerId: string) => {
+  return `/api/providers/${providerId}`;
+};
+
+export const upsertProviderConfig = async (
+  providerId: string,
+  upsertProviderConfigBody: UpsertProviderConfigBody,
+  options?: RequestInit,
+): Promise<ProviderConfig> => {
+  return customFetch<ProviderConfig>(getUpsertProviderConfigUrl(providerId), {
+    ...options,
+    method: "PUT",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(upsertProviderConfigBody),
+  });
+};
+
+export const getUpsertProviderConfigMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof upsertProviderConfig>>,
+    TError,
+    { providerId: string; data: BodyType<UpsertProviderConfigBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof upsertProviderConfig>>,
+  TError,
+  { providerId: string; data: BodyType<UpsertProviderConfigBody> },
+  TContext
+> => {
+  const mutationKey = ["upsertProviderConfig"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof upsertProviderConfig>>,
+    { providerId: string; data: BodyType<UpsertProviderConfigBody> }
+  > = (props) => {
+    const { providerId, data } = props ?? {};
+    return upsertProviderConfig(providerId, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type UpsertProviderConfigMutationResult = NonNullable<
+  Awaited<ReturnType<typeof upsertProviderConfig>>
+>;
+export type UpsertProviderConfigMutationBody = BodyType<UpsertProviderConfigBody>;
+export type UpsertProviderConfigMutationError = ErrorType<unknown>;
+
+export const useUpsertProviderConfig = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof upsertProviderConfig>>,
+    TError,
+    { providerId: string; data: BodyType<UpsertProviderConfigBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof upsertProviderConfig>>,
+  TError,
+  { providerId: string; data: BodyType<UpsertProviderConfigBody> },
+  TContext
+> => {
+  return useMutation(getUpsertProviderConfigMutationOptions(options));
+};
+
+/**
+ * @summary Delete provider configuration
+ */
+export const getDeleteProviderConfigUrl = (providerId: string) => {
+  return `/api/providers/${providerId}`;
+};
+
+export const deleteProviderConfig = async (
+  providerId: string,
+  options?: RequestInit,
+): Promise<void> => {
+  return customFetch<void>(getDeleteProviderConfigUrl(providerId), {
+    ...options,
+    method: "DELETE",
+  });
+};
+
+export const getDeleteProviderConfigMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof deleteProviderConfig>>,
+    TError,
+    { providerId: string },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof deleteProviderConfig>>,
+  TError,
+  { providerId: string },
+  TContext
+> => {
+  const mutationKey = ["deleteProviderConfig"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof deleteProviderConfig>>,
+    { providerId: string }
+  > = (props) => {
+    const { providerId } = props ?? {};
+    return deleteProviderConfig(providerId, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type DeleteProviderConfigMutationResult = NonNullable<
+  Awaited<ReturnType<typeof deleteProviderConfig>>
+>;
+export type DeleteProviderConfigMutationError = ErrorType<unknown>;
+
+export const useDeleteProviderConfig = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof deleteProviderConfig>>,
+    TError,
+    { providerId: string },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof deleteProviderConfig>>,
+  TError,
+  { providerId: string },
+  TContext
+> => {
+  return useMutation(getDeleteProviderConfigMutationOptions(options));
 };

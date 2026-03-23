@@ -91,6 +91,8 @@ export const SendOpenaiMessageParams = zod.object({
 export const SendOpenaiMessageBody = zod.object({
   content: zod.string(),
   systemPrompt: zod.string().optional(),
+  providerId: zod.string().optional(),
+  model: zod.string().optional(),
 });
 
 /**
@@ -103,4 +105,42 @@ export const GenerateOpenaiImageBody = zod.object({
 
 export const GenerateOpenaiImageResponse = zod.object({
   b64_json: zod.string(),
+});
+
+/**
+ * @summary List all configured providers
+ */
+export const ListProviderConfigsResponseItem = zod.object({
+  id: zod.number(),
+  providerId: zod.string(),
+  apiKey: zod.string().nullable().optional(),
+  baseUrl: zod.string().nullable().optional(),
+  enabled: zod.boolean(),
+  selectedModel: zod.string().nullable().optional(),
+  createdAt: zod.string(),
+  updatedAt: zod.string(),
+});
+export const ListProviderConfigsResponse = zod.array(ListProviderConfigsResponseItem);
+
+/**
+ * @summary Create or update provider configuration
+ */
+export const UpsertProviderConfigParams = zod.object({
+  providerId: zod.string(),
+});
+
+export const UpsertProviderConfigBody = zod.object({
+  apiKey: zod.string().nullable().optional(),
+  baseUrl: zod.string().nullable().optional(),
+  enabled: zod.boolean().optional(),
+  selectedModel: zod.string().nullable().optional(),
+});
+
+export const UpsertProviderConfigResponse = ListProviderConfigsResponseItem;
+
+/**
+ * @summary Delete provider configuration
+ */
+export const DeleteProviderConfigParams = zod.object({
+  providerId: zod.string(),
 });

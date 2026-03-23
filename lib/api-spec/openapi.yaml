@@ -12,6 +12,8 @@ tags:
     description: Health operations
   - name: openai
     description: OpenAI AI chat, image, and audio operations
+  - name: providers
+    description: Model provider configuration
 paths:
   /healthz:
     get:
@@ -141,6 +143,63 @@ paths:
           description: SSE stream of assistant text chunks
           content:
             text/event-stream: {}
+  /providers:
+    get:
+      operationId: listProviderConfigs
+      tags: [providers]
+      summary: List all configured providers
+      responses:
+        "200":
+          description: List of provider configs
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ProviderConfig"
+  /providers/{providerId}:
+    put:
+      operationId: upsertProviderConfig
+      tags: [providers]
+      summary: Create or update provider configuration
+      parameters:
+        - name: providerId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpsertProviderConfigBody"
+      responses:
+        "200":
+          description: Updated provider config
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProviderConfig"
+        "201":
+          description: Created provider config
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProviderConfig"
+    delete:
+      operationId: deleteProviderConfig
+      tags: [providers]
+      summary: Delete provider configuration
+      parameters:
+        - name: providerId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "204":
+          description: Deleted
   /openai/generate-image:
     post:
       operationId: generateOpenaiImage
@@ -217,6 +276,12 @@ components:
         systemPrompt:
           type: string
           description: Optional custom system prompt to override the default assistant instructions
+        providerId:
+          type: string
+          description: Optional provider ID to use for this message (e.g. "openai", "groq")
+        model:
+          type: string
+          description: Optional model name to use for this message
       required:
         - content
     OpenaiConversationWithMessages:
@@ -262,3 +327,48 @@ components:
           type: string
       required:
         - error
+    ProviderConfig:
+      type: object
+      properties:
+        id:
+          type: integer
+        providerId:
+          type: string
+        apiKey:
+          type: string
+          nullable: true
+          description: Masked as "••••••••" when set
+        baseUrl:
+          type: string
+          nullable: true
+        enabled:
+          type: boolean
+        selectedModel:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - providerId
+        - enabled
+        - createdAt
+        - updatedAt
+    UpsertProviderConfigBody:
+      type: object
+      properties:
+        apiKey:
+          type: string
+          nullable: true
+        baseUrl:
+          type: string
+          nullable: true
+        enabled:
+          type: boolean
+        selectedModel:
+          type: string
+          nullable: true

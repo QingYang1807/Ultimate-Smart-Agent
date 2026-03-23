@@ -16,3 +16,12 @@ export const openai = new OpenAI({
   apiKey: process.env.AI_INTEGRATIONS_OPENAI_API_KEY,
   baseURL: process.env.AI_INTEGRATIONS_OPENAI_BASE_URL,
 });
+
+export function createOpenAIClient(apiKey: string, baseURL?: string | null): OpenAI {
+  return new OpenAI({
+    apiKey,
+    baseURL: baseURL ?? undefined,
+  });
+}
+
+export type { OpenAI };

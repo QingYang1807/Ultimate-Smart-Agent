@@ -1,8 +1,8 @@
 import { Router, type IRouter } from "express";
 import { eq, desc } from "drizzle-orm";
 import { ZodError } from "zod";
-import { db, conversations, messages } from "@workspace/db";
-import { openai } from "@workspace/integrations-openai-ai-server";
+import { db, conversations, messages, providerConfigs } from "@workspace/db";
+import { openai, createOpenAIClient } from "@workspace/integrations-openai-ai-server";
 import {
   CreateOpenaiConversationBody,
   SendOpenaiMessageBody,
@@ -188,8 +188,27 @@ router.post("/conversations/:id/messages", async (req, res) => {
       aborted = true;
     });
 
-    const stream = await openai.chat.completions.create({
-      model: "gpt-5.2",
+    let activeClient = openai;
+    let activeModel = "gpt-5.2";
+
+    if (body.providerId) {
+      const [providerConfig] = await db
+        .select()
+        .from(providerConfigs)
+        .where(eq(providerConfigs.providerId, body.providerId));
+
+      if (providerConfig && providerConfig.apiKey && providerConfig.enabled) {
+        activeClient = createOpenAIClient(providerConfig.apiKey, providerConfig.baseUrl);
+        activeModel = body.model ?? providerConfig.selectedModel ?? "gpt-4o";
+      } else {
+        activeModel = body.model ?? "gpt-5.2";
+      }
+    } else if (body.model) {
+      activeModel = body.model;
+    }
+
+    const stream = await activeClient.chat.completions.create({
+      model: activeModel,
       max_completion_tokens: 8192,
       messages: chatMessages,
       stream: true,

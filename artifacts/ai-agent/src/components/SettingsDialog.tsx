@@ -6,9 +6,10 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Switch } from "@/components/ui/switch";
-import { Trash2, RotateCcw, Bot, Sliders, Info } from "lucide-react";
+import { Trash2, RotateCcw, Bot, Sliders, Info, Cpu } from "lucide-react";
 import { useDeleteOpenaiConversation, useListOpenaiConversations, getListOpenaiConversationsQueryKey } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
+import { ProvidersTab } from "@/components/ProvidersTab";
 
 export const SETTINGS_KEY = "nexus_settings";
 
@@ -52,12 +53,15 @@ export function buildSystemPrompt(settings: NexusSettings): string {
   return `${base}\n\n${styleInstructions[settings.responseStyle]} Use markdown formatting when it improves readability.`;
 }
 
+type SettingsTab = "general" | "providers";
+
 interface SettingsDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }
 
 export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
+  const [activeTab, setActiveTab] = useState<SettingsTab>("general");
   const [settings, setSettings] = useState<NexusSettings>(loadSettings);
   const [clearConfirm, setClearConfirm] = useState(false);
   const { data: conversations } = useListOpenaiConversations();
@@ -91,112 +95,140 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
     update({ systemPrompt: "" });
   };
 
+  const tabs: { id: SettingsTab; label: string; icon: React.ReactNode }[] = [
+    { id: "general", label: "General", icon: <Sliders className="w-3.5 h-3.5" /> },
+    { id: "providers", label: "Providers", icon: <Cpu className="w-3.5 h-3.5" /> },
+  ];
+
   return (
     <Dialog open={open} onOpenChange={(v) => { onOpenChange(v); setClearConfirm(false); }}>
-      <DialogContent className="max-w-lg bg-[#0d0d12] border-white/10 text-white rounded-2xl p-0 overflow-hidden">
-        <DialogHeader className="px-6 pt-6 pb-4 border-b border-white/5">
-          <DialogTitle className="text-lg font-semibold text-white flex items-center gap-2">
+      <DialogContent className={`${activeTab === "providers" ? "max-w-3xl" : "max-w-lg"} bg-[#0d0d12] border-white/10 text-white rounded-2xl p-0 overflow-hidden transition-all`}>
+        <DialogHeader className="px-6 pt-6 pb-0 border-b border-white/5">
+          <DialogTitle className="text-lg font-semibold text-white flex items-center gap-2 mb-4">
             <Sliders className="w-5 h-5 text-primary" />
             Settings
           </DialogTitle>
+          {/* Tab bar */}
+          <div className="flex gap-1">
+            {tabs.map((tab) => (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                className={`flex items-center gap-1.5 px-4 py-2 text-sm font-medium rounded-t-lg transition-all border-b-2 ${
+                  activeTab === tab.id
+                    ? "text-primary border-primary bg-primary/5"
+                    : "text-white/40 border-transparent hover:text-white/70"
+                }`}
+              >
+                {tab.icon}
+                {tab.label}
+              </button>
+            ))}
+          </div>
         </DialogHeader>
 
-        <div className="px-6 py-5 space-y-6 overflow-y-auto max-h-[70vh]">
-          {/* Model info */}
-          <section className="space-y-2">
-            <h3 className="text-xs font-semibold text-white/40 uppercase tracking-wider">Model</h3>
-            <div className="flex items-center gap-3 p-3 rounded-xl bg-white/5 border border-white/5">
-              <Bot className="w-5 h-5 text-primary shrink-0" />
-              <div>
-                <p className="text-sm font-medium text-white">GPT-5.2</p>
-                <p className="text-xs text-white/40">Powered by Replit AI Integration</p>
+        {activeTab === "general" ? (
+          <div className="px-6 py-5 space-y-6 overflow-y-auto max-h-[70vh]">
+            {/* Model info */}
+            <section className="space-y-2">
+              <h3 className="text-xs font-semibold text-white/40 uppercase tracking-wider">Model</h3>
+              <div className="flex items-center gap-3 p-3 rounded-xl bg-white/5 border border-white/5">
+                <Bot className="w-5 h-5 text-primary shrink-0" />
+                <div>
+                  <p className="text-sm font-medium text-white">GPT-5.2</p>
+                  <p className="text-xs text-white/40">Powered by Replit AI Integration · Configure more in Providers tab</p>
+                </div>
               </div>
-            </div>
-          </section>
+            </section>
 
-          {/* Response style */}
-          <section className="space-y-3">
-            <h3 className="text-xs font-semibold text-white/40 uppercase tracking-wider">Response Style</h3>
-            <div className="grid grid-cols-3 gap-2">
-              {(["concise", "balanced", "detailed"] as const).map((style) => (
-                <button
-                  key={style}
-                  onClick={() => update({ responseStyle: style })}
-                  className={`px-3 py-2 rounded-xl text-xs font-medium capitalize transition-all border ${
-                    settings.responseStyle === style
-                      ? "bg-primary/20 border-primary/40 text-primary"
-                      : "bg-white/5 border-white/5 text-white/50 hover:bg-white/10 hover:text-white"
-                  }`}
-                >
-                  {style}
-                </button>
-              ))}
-            </div>
-            <p className="text-xs text-white/30">
-              {settings.responseStyle === "concise" && "Short, direct answers without elaboration."}
-              {settings.responseStyle === "balanced" && "Clear and helpful responses with appropriate detail."}
-              {settings.responseStyle === "detailed" && "Comprehensive answers with explanations and examples."}
-            </p>
-          </section>
-
-          {/* Streaming */}
-          <section className="space-y-3">
-            <h3 className="text-xs font-semibold text-white/40 uppercase tracking-wider">Behavior</h3>
-            <div className="flex items-center justify-between p-3 rounded-xl bg-white/5 border border-white/5">
-              <div>
-                <p className="text-sm font-medium text-white">Streaming responses</p>
-                <p className="text-xs text-white/40">Show tokens as they are generated</p>
+            {/* Response style */}
+            <section className="space-y-3">
+              <h3 className="text-xs font-semibold text-white/40 uppercase tracking-wider">Response Style</h3>
+              <div className="grid grid-cols-3 gap-2">
+                {(["concise", "balanced", "detailed"] as const).map((style) => (
+                  <button
+                    key={style}
+                    onClick={() => update({ responseStyle: style })}
+                    className={`px-3 py-2 rounded-xl text-xs font-medium capitalize transition-all border ${
+                      settings.responseStyle === style
+                        ? "bg-primary/20 border-primary/40 text-primary"
+                        : "bg-white/5 border-white/5 text-white/50 hover:bg-white/10 hover:text-white"
+                    }`}
+                  >
+                    {style}
+                  </button>
+                ))}
               </div>
-              <Switch
-                checked={settings.streamingEnabled}
-                onCheckedChange={(v) => update({ streamingEnabled: v })}
+              <p className="text-xs text-white/30">
+                {settings.responseStyle === "concise" && "Short, direct answers without elaboration."}
+                {settings.responseStyle === "balanced" && "Clear and helpful responses with appropriate detail."}
+                {settings.responseStyle === "detailed" && "Comprehensive answers with explanations and examples."}
+              </p>
+            </section>
+
+            {/* Streaming */}
+            <section className="space-y-3">
+              <h3 className="text-xs font-semibold text-white/40 uppercase tracking-wider">Behavior</h3>
+              <div className="flex items-center justify-between p-3 rounded-xl bg-white/5 border border-white/5">
+                <div>
+                  <p className="text-sm font-medium text-white">Streaming responses</p>
+                  <p className="text-xs text-white/40">Show tokens as they are generated</p>
+                </div>
+                <Switch
+                  checked={settings.streamingEnabled}
+                  onCheckedChange={(v) => update({ streamingEnabled: v })}
+                />
+              </div>
+            </section>
+
+            {/* Custom system prompt */}
+            <section className="space-y-3">
+              <div className="flex items-center justify-between">
+                <h3 className="text-xs font-semibold text-white/40 uppercase tracking-wider">Custom Instructions</h3>
+                {settings.systemPrompt && (
+                  <button
+                    onClick={handleResetPrompt}
+                    className="flex items-center gap-1 text-xs text-white/40 hover:text-white/70 transition-colors"
+                  >
+                    <RotateCcw className="w-3 h-3" />
+                    Reset
+                  </button>
+                )}
+              </div>
+              <textarea
+                value={settings.systemPrompt}
+                onChange={(e) => update({ systemPrompt: e.target.value })}
+                placeholder="Add custom instructions for the AI (optional). For example: 'Always respond in Spanish' or 'You are a senior Python engineer.'"
+                rows={4}
+                className="w-full px-3 py-2.5 rounded-xl bg-white/5 border border-white/10 text-sm text-white/80 placeholder:text-white/20 focus:outline-none focus:border-primary/40 resize-none transition-colors"
               />
-            </div>
-          </section>
+              <div className="flex items-start gap-2 text-xs text-white/30">
+                <Info className="w-3 h-3 shrink-0 mt-0.5" />
+                <p>These instructions are sent with every message and shape how the AI responds to you.</p>
+              </div>
+            </section>
 
-          {/* Custom system prompt */}
-          <section className="space-y-3">
-            <div className="flex items-center justify-between">
-              <h3 className="text-xs font-semibold text-white/40 uppercase tracking-wider">Custom Instructions</h3>
-              {settings.systemPrompt && (
-                <button
-                  onClick={handleResetPrompt}
-                  className="flex items-center gap-1 text-xs text-white/40 hover:text-white/70 transition-colors"
-                >
-                  <RotateCcw className="w-3 h-3" />
-                  Reset
-                </button>
-              )}
-            </div>
-            <textarea
-              value={settings.systemPrompt}
-              onChange={(e) => update({ systemPrompt: e.target.value })}
-              placeholder="Add custom instructions for the AI (optional). For example: 'Always respond in Spanish' or 'You are a senior Python engineer.'"
-              rows={4}
-              className="w-full px-3 py-2.5 rounded-xl bg-white/5 border border-white/10 text-sm text-white/80 placeholder:text-white/20 focus:outline-none focus:border-primary/40 resize-none transition-colors"
-            />
-            <div className="flex items-start gap-2 text-xs text-white/30">
-              <Info className="w-3 h-3 shrink-0 mt-0.5" />
-              <p>These instructions are sent with every message and shape how the AI responds to you.</p>
-            </div>
-          </section>
-
-          {/* Danger zone */}
-          <section className="space-y-3 pt-2 border-t border-white/5">
-            <h3 className="text-xs font-semibold text-white/40 uppercase tracking-wider">Data</h3>
-            <button
-              onClick={handleClearAll}
-              className={`flex items-center gap-2 w-full px-4 py-3 rounded-xl text-sm font-medium transition-all border ${
-                clearConfirm
-                  ? "bg-red-500/20 border-red-500/40 text-red-400 hover:bg-red-500/30"
-                  : "bg-white/5 border-white/5 text-white/60 hover:bg-white/10 hover:text-white"
-              }`}
-            >
-              <Trash2 className="w-4 h-4" />
-              {clearConfirm ? "Click again to confirm — this cannot be undone" : "Clear all conversations"}
-            </button>
-          </section>
-        </div>
+            {/* Danger zone */}
+            <section className="space-y-3 pt-2 border-t border-white/5">
+              <h3 className="text-xs font-semibold text-white/40 uppercase tracking-wider">Data</h3>
+              <button
+                onClick={handleClearAll}
+                className={`flex items-center gap-2 w-full px-4 py-3 rounded-xl text-sm font-medium transition-all border ${
+                  clearConfirm
+                    ? "bg-red-500/20 border-red-500/40 text-red-400 hover:bg-red-500/30"
+                    : "bg-white/5 border-white/5 text-white/60 hover:bg-white/10 hover:text-white"
+                }`}
+              >
+                <Trash2 className="w-4 h-4" />
+                {clearConfirm ? "Click again to confirm — this cannot be undone" : "Clear all conversations"}
+              </button>
+            </section>
+          </div>
+        ) : (
+          <div className="px-6 py-5">
+            <ProvidersTab />
+          </div>
+        )}
       </DialogContent>
     </Dialog>
   );

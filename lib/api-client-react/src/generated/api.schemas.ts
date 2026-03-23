@@ -29,6 +29,9 @@ export interface CreateOpenaiConversationBody {
 
 export interface SendOpenaiMessageBody {
   content: string;
+  systemPrompt?: string;
+  providerId?: string;
+  model?: string;
 }
 
 export interface OpenaiConversationWithMessages {
@@ -58,4 +61,22 @@ export interface GenerateOpenaiImageResponse {
 
 export interface OpenaiError {
   error: string;
+}
+
+export interface ProviderConfig {
+  id: number;
+  providerId: string;
+  apiKey?: string | null;
+  baseUrl?: string | null;
+  enabled: boolean;
+  selectedModel?: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface UpsertProviderConfigBody {
+  apiKey?: string | null;
+  baseUrl?: string | null;
+  enabled?: boolean;
+  selectedModel?: string | null;
 }

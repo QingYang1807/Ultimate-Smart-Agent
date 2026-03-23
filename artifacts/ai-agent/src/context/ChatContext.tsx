@@ -7,6 +7,7 @@ import {
   getListOpenaiConversationsQueryKey,
 } from "@workspace/api-client-react";
 import { loadSettings, buildSystemPrompt } from "@/components/SettingsDialog";
+import { loadActiveModel } from "@/lib/providers-registry";
 
 export type LocalMedia = {
   id: string;
@@ -118,11 +119,14 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
 
         const settings = loadSettings();
         const systemPrompt = buildSystemPrompt(settings);
+        const activeModel = loadActiveModel();
+        const providerId = activeModel.providerId !== "replit" ? activeModel.providerId : undefined;
+        const model = activeModel.model !== "gpt-5.2" ? activeModel.model : undefined;
 
         const res = await fetch(`/api/openai/conversations/${targetId}/messages`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ content, systemPrompt }),
+          body: JSON.stringify({ content, systemPrompt, providerId, model }),
           signal: abortControllerRef.current.signal,
         });
 

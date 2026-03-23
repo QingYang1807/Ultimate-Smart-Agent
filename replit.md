@@ -45,11 +45,15 @@ artifacts-monorepo/
 - **Multi-turn context**: Full conversation history sent to GPT-5.2 on each request
 - **Image generation**: gpt-image-1 via POST /api/openai/generate-image
 - **Dark mode UI**: Professional dark-mode interface with sidebar + chat layout
+- **Settings**: Custom instructions, response style (concise/balanced/detailed), streaming toggle
+- **Provider configuration**: Cherry Studio-style provider management with ~45 providers. API keys stored in DB server-side. Dynamic OpenAI-compatible client creation per request. Active model selector in sidebar.
+- **Model picker**: Active provider+model shown in sidebar bottom, clickable to open Settings → Providers tab
 
 ## Database Schema
 
 - `conversations` table: id, title, created_at
 - `messages` table: id, conversation_id (FK), role, content, created_at
+- `provider_configs` table: id, provider_id (unique), api_key (nullable), base_url (nullable), enabled, selected_model, created_at, updated_at
 
 ## API Routes
 
@@ -63,6 +67,9 @@ All routes under `/api`:
 - `GET /api/openai/conversations/:id/messages` — List messages
 - `POST /api/openai/conversations/:id/messages` — Send message (SSE streaming)
 - `POST /api/openai/generate-image` — Generate image (base64 response)
+- `GET /api/providers` — List provider configs (API keys masked as "••••••••")
+- `PUT /api/providers/:providerId` — Upsert provider config (API key, base URL, enabled, selectedModel)
+- `DELETE /api/providers/:providerId` — Delete provider config
 
 ## TypeScript & Composite Projects
 
