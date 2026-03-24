@@ -260,7 +260,7 @@ data: {"content":", world"}
 data: {"done":true}
 ```
 
-Each `data:` line contains a JSON object with either `content` (a text delta) or `done: true` (stream end sentinel).
+Each `data:` line contains a JSON object with either `content` (a text delta) or `done: true` (stream end sentinel). The `done: true` sentinel is only emitted when the stream completes normally. If the client aborts early (Stop button), the connection is closed without the sentinel and the server may persist a partial response.
 
 ### Provider Configuration
 
@@ -281,7 +281,7 @@ Each `data:` line contains a JSON object with either `content` (a text delta) or
 }
 ```
 
-- Sending `apiKey: null` removes the stored key and automatically disables the provider.
+- Sending `apiKey: null` clears the stored API key. The `enabled` flag is not changed server-side — to disable the provider at the same time, include `"enabled": false` in the same request body (the UI does this automatically when removing a key).
 - Sending the masked placeholder `"••••••••"` is a no-op — the existing key is preserved.
 - `baseUrl` is SSRF-validated on every write; invalid URLs return `400`.
 
@@ -507,7 +507,21 @@ On Replit both workflows start automatically when you open the Repl.
 | Local (frontend) | `http://localhost:<PORT>` (port printed by Vite on startup) |
 | Local (API) | `http://localhost:<PORT>/api/healthz` (port printed by Express on startup) |
 
-The API server reads its port from the `PORT` environment variable (auto-assigned by Replit). The Vite dev server reads the same `PORT` variable so both services stay on separate ports without manual configuration.
+On Replit, `PORT` is auto-assigned separately for each workflow — the two services never share a port. When running locally outside Replit, set distinct port values before starting each process:
+
+```bash
+# Terminal 1 — API server
+PORT=3001 pnpm --filter @workspace/api-server run dev
+
+# Terminal 2 — frontend
+PORT=5173 pnpm --filter @workspace/ai-agent run dev
+```
+
+Also set the `BASE_PATH` environment variable if your Vite config requires it (used for path-based routing under the Replit preview proxy):
+
+```bash
+BASE_PATH=/ pnpm --filter @workspace/ai-agent run dev
+```
 
 ---
 
