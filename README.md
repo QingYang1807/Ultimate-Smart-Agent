@@ -2,6 +2,7 @@
 
 > A full-stack AI Agent web application powered by GPT-5.2 via Replit AI Integrations. Real-time streaming conversations, persistent chat history, image generation, and Cherry Studio-style multi-provider configuration supporting 45 AI providers.
 
+![Node.js](https://img.shields.io/badge/Node.js-24-339933?logo=nodedotjs&logoColor=white)
 ![TypeScript](https://img.shields.io/badge/TypeScript-5.9-3178C6?logo=typescript&logoColor=white)
 ![React](https://img.shields.io/badge/React-18-61DAFB?logo=react&logoColor=white)
 ![Express](https://img.shields.io/badge/Express-5-000000?logo=express&logoColor=white)
@@ -69,40 +70,50 @@
 ## Architecture Overview
 
 ```
-┌─────────────────────────────────────────────────────────────────┐
-│                    Browser (React SPA)                          │
-│                                                                 │
-│  Sidebar ──► ModelPicker popover                                │
-│     │                                                           │
-│  ChatInput ──► ChatContext.sendMessage()                        │
-│     │              │                                            │
-│  MessageList ◄──── │  SSE ReadableStream reader                 │
-│  (live tokens)     │  (TextDecoder + SSE line parser)           │
-└────────────────────┼────────────────────────────────────────────┘
+┌──────────────────────────────────────────────────────────────────────┐
+│  Development: Vite Dev Server (HMR)   Production: Static SPA bundle  │
+│  pnpm --filter @workspace/ai-agent run dev                           │
+└──────────────────────────────┬───────────────────────────────────────┘
+                               │ serves React SPA to browser
+                               ▼
+┌─────────────────────────────────────────────────────────────────────┐
+│                    Browser (React SPA)                              │
+│                                                                     │
+│  Sidebar ──► ModelPicker popover                                    │
+│     │            (localStorage: nexus_active_model)                 │
+│  ChatInput ──► ChatContext.sendMessage()                            │
+│     │              │                                                │
+│  MessageList ◄──── │  SSE ReadableStream reader                     │
+│  (live tokens)     │  (TextDecoder + SSE line parser)               │
+└────────────────────┼────────────────────────────────────────────────┘
                      │  POST /api/openai/conversations/:id/messages
                      │  Content-Type: application/json
                      │  { content, systemPrompt, providerId, model }
-┌────────────────────▼────────────────────────────────────────────┐
-│                    Express 5 API Server                         │
-│                                                                 │
-│  conversations.ts route                                         │
-│    1. Save user message to PostgreSQL                           │
-│    2. Load conversation history from PostgreSQL                 │
-│    3. Resolve provider config from provider_configs table       │
-│    4. Validate baseUrl (SSRF check)                             │
-│    5. createOpenAIClient(apiKey, baseUrl) → per-request client  │
-│    6. openai.chat.completions.create({ stream: true })          │
-│    7. Stream SSE chunks → res.write(`data: {...}\n\n`)          │
-│    8. Insert full assistant message to PostgreSQL               │
-│    9. Write data: {"done":true}                                 │
-└─────────────────────────────────────────────────────────────────┘
-                     │
-          ┌──────────┴──────────┐
-          │  PostgreSQL DB      │
-          │  conversations      │
-          │  messages           │
-          │  provider_configs   │
-          └─────────────────────┘
+┌────────────────────▼────────────────────────────────────────────────┐
+│                    Express 5 API Server                             │
+│  pnpm --filter @workspace/api-server run dev                        │
+│                                                                     │
+│  conversations.ts route                                             │
+│    1. Save user message to PostgreSQL                               │
+│    2. Load conversation history from PostgreSQL                     │
+│    3. Resolve provider config from provider_configs table           │
+│    4. Validate baseUrl (SSRF check)                                 │
+│    5. createOpenAIClient(apiKey, baseUrl) → per-request client      │
+│    6. openai.chat.completions.create({ stream: true })              │
+│    7. Stream SSE chunks → res.write(`data: {...}\n\n`)              │
+│    8. Insert full assistant message to PostgreSQL                   │
+│    9. Write data: {"done":true}                                     │
+└──────────────────────┬──────────────────────────┬───────────────────┘
+                       │                          │
+          ┌────────────▼────────────┐   ┌─────────▼──────────────────┐
+          │  PostgreSQL DB          │   │  External Provider APIs     │
+          │  conversations          │   │  (OpenAI-compatible)        │
+          │  messages               │   │  api.openai.com             │
+          │  provider_configs       │   │  api.groq.com               │
+          └─────────────────────────┘   │  api.anthropic.com          │
+                                        │  localhost:11434 (Ollama)   │
+                                        │  … 45 providers total       │
+                                        └────────────────────────────┘
 ```
 
 The frontend and API server are separate artifacts in a pnpm monorepo. Shared code lives in the `lib/` packages: the OpenAPI spec drives Orval codegen which produces typed React Query hooks and Zod schemas so the frontend never writes raw `fetch` calls or manual types.
@@ -307,7 +318,7 @@ When the frontend sends a message, it includes `{ providerId, model }` in the re
 | Anthropic | `anthropic` | `https://api.anthropic.com/v1` | Yes (via proxy) |
 | Gemini | `gemini` | `https://generativelanguage.googleapis.com/v1beta/openai` | Yes |
 | Azure OpenAI | `azure-openai` | `https://{resource}.openai.azure.com/openai/deployments/{deployment}` | Yes |
-| Vertex AI | `vertex-ai` | `https://us-central1-aiplatform.googleapis.com/v1/...` | Yes |
+| Vertex AI | `vertex-ai` | `https://us-central1-aiplatform.googleapis.com/v1/projects/{project}/locations/us-central1/endpoints/openapi` | Yes |
 | Groq | `groq` | `https://api.groq.com/openai/v1` | Yes |
 | OpenRouter | `openrouter` | `https://openrouter.ai/api/v1` | Yes |
 | DeepSeek | `deepseek` | `https://api.deepseek.com/v1` | Yes |
@@ -486,6 +497,17 @@ pnpm --filter @workspace/ai-agent run dev
 ```
 
 On Replit both workflows start automatically when you open the Repl.
+
+### Accessing the app
+
+| Environment | URL |
+|---|---|
+| Replit (preview pane) | The workspace preview pane — click the AI Agent entry in the dropdown |
+| Replit (browser tab) | `https://<your-repl-slug>.replit.dev/` |
+| Local (frontend) | `http://localhost:<PORT>` (port printed by Vite on startup) |
+| Local (API) | `http://localhost:<PORT>/api/healthz` (port printed by Express on startup) |
+
+The API server reads its port from the `PORT` environment variable (auto-assigned by Replit). The Vite dev server reads the same `PORT` variable so both services stay on separate ports without manual configuration.
 
 ---
 
